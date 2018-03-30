@@ -19,22 +19,11 @@ from lthacks.stats_functions import get_function
 from lthacks.intersectMask import array_to_raster
 
 FUNC_OPTIONS = ['mode',
-                'mean',
                 'nanmean',
                 'nansum']
 
 def aggregate_array(ar, window_size, function, nodata=None):
-    
-    '''# Clip rows and cols without any data
-    in_nrows, in_ncols = ar.shape
-    in_nodata_mask = ar == nodata
-    row_mask_1d = np.all(in_nodata_mask, axis=1)
-    col_mask_1d = np.all(in_nodata_mask, axis=0)
-    row_mask = np.repeat(row_mask_1d, in_ncols).reshape(in_nrows, in_ncols)
-    col_mask = np.repeat(col_mask_1d, in_nrows).reshape(in_nrows, in_ncols)
-    data_nrows = in_nrows - row_mask_1d.sum()
-    data_ncols = in_ncols - col_mask_1d.sum()
-    ar = ar[~row_mask & ~col_mask].astype(np.float16).reshape(data_nrows, data_ncols)'''
+
     
     # Buffer the input array so that it has enough rows and cols such that 
     #   ar_buf.shape % window_size == 0
@@ -46,7 +35,8 @@ def aggregate_array(ar, window_size, function, nodata=None):
     ar_buf = np.full((buf_nrows, buf_ncols), np.nan, dtype=np.float32)
     ul_row = (buf_nrows - data_nrows)/2
     ul_col = (buf_ncols - data_ncols)/2
-    ar[ar == nodata] = np.nan # Protect nodata values for calculations
+    if nodata is not None:
+        ar[ar == nodata] = np.nan # Protect nodata values for calculations
     ar_buf[ul_row : ul_row + data_nrows, ul_col : ul_col + data_ncols] = ar # Center data
 
     # Aggregate
@@ -54,7 +44,8 @@ def aggregate_array(ar, window_size, function, nodata=None):
     out_ncols = buf_ncols/window_size
     ar_out = function(ar_buf.reshape(out_nrows, window_size, out_ncols, window_size),
                       axis=(1,3))
-    ar_out[np.isnan(ar_out)] = nodata
+    if nodata is not None:
+        ar_out[np.isnan(ar_out)] = nodata
     ar_out.astype(dtype)
     
     return ar_out.astype(dtype), ul_row, ul_col
@@ -87,12 +78,7 @@ def main(raster_path, window_sizes, function_string, nodata, out_dir=None, mask_
     window_sizes = [int(s) for s in window_sizes.split(',')]
     
     if function_string in FUNC_OPTIONS:
-        if function_string == 'nansum':
-            function = np.nansum
-        elif function_string == 'nanmean':
-            function = np.nanmean
-        else:
-            function = get_function(function_string)
+        function = get_function(function_string)
     else:
         raise ValueError('function_string not understood: %s. Valid options: %s' % (function_string, '\n\t'.join(FUNC_OPTIONS)))
     
@@ -127,8 +113,7 @@ def main(raster_path, window_sizes, function_string, nodata, out_dir=None, mask_
             out_path = raster_path.replace(file_ext, tag)
         if out_dir:
             out_path = os.path.join(out_dir, os.path.basename(out_path))
-        '''if os.path.exists(out_path):
-            raise IOError('Path exists: %s' % out_path)'''
+
         array_to_raster(ar_out, out_tx, prj, driver, out_path, dtype, nodata)
         
         desc = ('Aggregated raster using the {0} of window size of {1} x {1}.' +\
