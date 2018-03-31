@@ -219,7 +219,7 @@ def hist2d(ar_r, ar_p, out_png, nbins=100, cmap='gray_r', title=None, xlabel=Non
     return hist
 
 
-def main(ref_search_str, pred_search_str, r_nodata, p_nodata, agg_levels, out_txt, pred_scale=1):
+def main(ref_search_str, pred_search_str, r_nodata, p_nodata, agg_levels, out_txt, pred_scale=1, ax_limit=None):
 
     sns.set_style('white')
     sns.set_context(context='paper', font_scale=1, rc={'patch.linewidth': 0})
@@ -327,22 +327,14 @@ def main(ref_search_str, pred_search_str, r_nodata, p_nodata, agg_levels, out_tx
         #plt.plot(x, y, '-', lw=3, color='white', alpha=0.5)
         plt.plot(x, y, '-', lw=2, color='k')
         label_text = '$r^2$ = %.3f' %  r2
-        '''label_x = max_val * .75 - 25
-        label_y = label_x * gmfr_b + gmfr_a + 25
-        text_position = np.array([label_x, label_y]).reshape(1,2)
-        label_angle = (np.arctan(gmfr_b) / math.pi) * 180
-        plot_angle = ax.transData.transform_angles(np.array((label_angle,)), text_position)[0]
-        ax.text(label_x,
-                 label_y, 
-                 label_text, 
-                 fontsize=8, 
-                 ha='center', 
-                 rotation_mode='anchor',
-                 rotation=plot_angle)#'''
+
         plt.title(label_text, fontsize=12)
         #set plotting limits. 
-        plt.ylim((0, max_val))
-        plt.xlim((0, max_val))
+        if not ax_limit:
+            ax_limit = max_val
+        plt.ylim((0, ax_limit))
+        plt.xlim((0, ax_limit))
+        ax_limit = None
         
         plt.savefig(out_png, dpi=300)
         
