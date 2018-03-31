@@ -214,7 +214,7 @@ def hist2d(ar_r, ar_p, out_png, nbins=100, cmap='gray_r', title=None, xlabel=Non
     return hist
 
 
-def main(ref_path, pred_path, r_nodata, p_nodata, out_txt, pred_scale=1, ax_limit=1000):
+def main(ref_path, pred_path, r_nodata, p_nodata, out_txt, pred_scale=1, ax_limit=None):
 
     sns.set_style('white')
     sns.set_context(context='paper', rc={'patch.linewidth': 0})
@@ -288,8 +288,10 @@ def main(ref_path, pred_path, r_nodata, p_nodata, out_txt, pred_scale=1, ax_limi
     plt.title(label_text, fontsize=12)
     
     #set plotting limits. 
-    plt.ylim((0,ax_limit))
-    plt.xlim((0,ax_limit))
+    if not ax_limit:
+        ax_limit = max_val
+    plt.ylim((0, ax_limit))
+    plt.xlim((0, ax_limit))
     
     plt.savefig(out_png, dpi=300)
          
