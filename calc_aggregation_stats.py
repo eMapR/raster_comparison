@@ -4,12 +4,13 @@
 that match, and calc stats and make 2D histograms showing agreement.
 
 Usage:
-  calc_aggregation_stats.py <ref_search_str>, <pred_search_str>, <r_nodata>, <p_nodata>, <agg_levels>, <out_txt>, [--pred_scale=<s>]
-  calc_aggregation_stats.py -h | --help
+    calc_aggregation_stats.py <ref_search_str>, <pred_search_str>, <r_nodata>, <p_nodata>, <agg_levels>, <out_txt>, [--pred_scale=<s>] [--ax_limit=<int>]
+    calc_aggregation_stats.py -h | --help
 
 Options:
-  -h --help     	  Show this screen.
-  --pred_scale=<s>  	  Scaling factor for the prediction map (float)
+    -h --help     	  Show this screen.
+    --pred_scale=<s>  	  Scaling factor for the prediction map (float)
+    --ax_limit=<int>     limit of x and y axes. Default is max of ref_path or pred_path
 '''
 
 import os
@@ -218,7 +219,7 @@ def hist2d(ar_r, ar_p, out_png, nbins=100, cmap='gray_r', title=None, xlabel=Non
     return hist
 
 
-def main(ref_search_str, pred_search_str, r_nodata, p_nodata, agg_levels, out_txt, pred_scale=1, cutoffs=None, ranges=None):
+def main(ref_search_str, pred_search_str, r_nodata, p_nodata, agg_levels, out_txt, pred_scale=1):
 
     sns.set_style('white')
     sns.set_context(context='paper', font_scale=1, rc={'patch.linewidth': 0})
@@ -340,84 +341,11 @@ def main(ref_search_str, pred_search_str, r_nodata, p_nodata, agg_levels, out_tx
                  rotation=plot_angle)#'''
         plt.title(label_text, fontsize=12)
         #set plotting limits. 
-        plt.ylim((0,1000))
-        plt.xlim((0,1000))
+        plt.ylim((0, max_val))
+        plt.xlim((0, max_val))
         
-        # Plot minor axes in light gray. Not sure if there's a mor legit way
-        #   to plot axes with different colors
-        '''plot_min, plot_max = plt.xlim()
-        plot_max += plot_max * 0.003
-        plt.plot([0, plot_max], [plot_max, plot_max], '-', lw=4, color='0.8')
-        plt.plot([plot_max, plot_max], [0, plot_max], '-', lw=4, color='0.8')#'''
         plt.savefig(out_png, dpi=300)
         
-        if cutoffs:
-            ranges = [[int(l) for l in rge.split(',')] for rge in cutoffs.split(';')]
-            this_max = max([ar_r.max(), ar_p.max()])
-            this_min = min([ar_r.min(), ar_p.min()])
-            #fig = plt.figure()
-            #ax.text(this_max/2, this_max + this_max * .05, 'Overall $r^2$: %.3f' % r2, fontsize=10, ha='center')
-            #plot_scale = float(nbins)/this_max
-            for i, (lower, upper) in enumerate(ranges):
-                this_mask = (ar_r >= lower) & (ar_r <= upper) & (ar_p >= lower) & (ar_p <= upper)
-                this_r = ar_r[this_mask]
-                this_p = ar_p[this_mask]
-                
-                # Calc additional stats
-                rmse, rmspe, r2, r, gmfr_a, gmfr_b = calc_stats(this_r, this_p)
-                these_stats['rmse_%s-%s' % (lower, upper)] = rmse
-                these_stats['pearsonr_%s-%s' % (lower, upper)] = r
-                these_stats['odr_intercept_%s-%s' % (lower, upper)] = gmfr_a
-                these_stats['odr_slope_%s-%s' % (lower, upper)] = gmfr_b
-                these_stats['r2_%s-%s' % (lower, upper)] = r2
-
-                # Plot this line on the histogram
-                x = np.array([lower, upper])
-                if i == 1:
-                    x = np.array([lower, upper + 100])
-                y = gmfr_b * x + gmfr_a
-                #x = x * plot_scale
-                #y2 = gmfr_b * upper + gmfr_a * float(nbins)/this_max
-                #print y1, y2
-                #ax = histogram_2d(this_r, this_p, out_png, hexplot=False, cmap='plasma', xlabel=xlabel, ylabel=ylabel)
-                plt.plot(x, y, '-', color='k', alpha=.5) # x and y switched because the predicted is on x axis
-                # plot the rest of the line dotted and transparent
-                if lower <= this_min:
-                    x1 = np.arange(upper, this_max + 1, 10, dtype=np.int16)
-                else:
-                    x1 = np.arange(this_min, lower + 1, 10, dtype=np.int16)
-                y1 = (gmfr_b * x1 + gmfr_a)# * plot_scale
-                #x1 = x1 * plot_scale
-                #plt.plot(x1, y1, '--', color='k', alpha=0.4)
-                
-                # Plot the title again with the new r2 value appended
-                addtl_title = '$r^2$ = %.3f' %  r2
-                '''label_x = (x.min() + (x.max() - x.min())) * .75 - 25
-                label_y = label_x * gmfr_b + gmfr_a + 25
-                text_position = np.array([label_x, label_y]).reshape(1,2)
-                label_angle = (np.arctan(gmfr_b) / math.pi) * 180
-                plot_angle = ax.transData.transform_angles(np.array((label_angle,)), text_position)[0]
-                ax.text(label_x,
-                         label_y, 
-                         addtl_title, 
-                         fontsize=8, 
-                         ha='center', 
-                         rotation_mode='anchor',
-                         rotation=plot_angle)#'''
-                label_text += ',  seg%s %s' % (i + 1, addtl_title)
-                plt.title(label_text, fontsize=10)
-            
-            # PLot axes minor axes again since the other ones got written over
-            '''plot_min, plot_max = plt.xlim()
-            plot_max += plot_max * 0.003
-            plt.plot([0, plot_max], [plot_max, plot_max], '-', lw=3, color='0.8')
-            plt.plot([plot_max, plot_max], [0, plot_max], '-', lw=3, color='0.8')#'''
-            
-            #set plotting limits. 
-            plt.ylim((0,1000))
-            plt.xlim((0,1000))
-            
-            plt.savefig(out_png, dpi=300)
         agg_stats.append(these_stats)        
         plt.clf()
         
@@ -442,8 +370,7 @@ def main(ref_search_str, pred_search_str, r_nodata, p_nodata, agg_levels, out_tx
     desc += '\tagg_levels: %s\n' % ','.join(agg_levels)
     desc += '\tout_txt: %s\n' % out_txt.replace('_stats.txt', '.txt')
     desc += '\tpred_scale: %s\n' % pred_scale
-    if ranges:
-        desc +='\tcutoffs: %s\n' % cutoffs
+
     createMetadata(sys.argv, out_txt, description=desc)
     
     print df_stats
