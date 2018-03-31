@@ -1,8 +1,29 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Feb  2 12:54:57 2017
+Usage:
+    aggregate_raster.py <raster_path> <window_sizes> <function_string> [--nodata=<int>] [--out_dir=<str>] [--mask_path=<str>] [--mask_val=<int>]
 
-@author: shooper
+    example: python aggregate_raster.py /path/to/input_raster.py 2 nanmean -9999
+    
+
+    Mutliple window sizes can be set with a comma-separated list.
+    example: python aggregate_raster.py /path/to/input_raster.py '2,3,4,5' nanmean -9999
+
+    To mask the input raster before aggregating, you can specify a mask_path and mask_val(defaults to 0)
+
+Required parameters:
+    raster_path     path to raster to aggregate
+    window_sizes    single int or comma-separate list of ints specifying number
+                    of pixels to aggregate
+    function_string string indicating what statistic to use to calculate aggregations.
+                    Valid options for `function_string' are 'nanmean', 'nansum', and 'mode'.
+
+Options:
+    nodata=<int>    integer nodata value of raster_path
+    out_dir=<str>   alternative output directory. Default is directory of raster_path
+    mask_path=<str> path of raster to use as mask before aggregating. Must have same geotransform and projection as raster_path
+    mask_val=<int>  int specifying which pixels to use as mask from mask_path
+
 """
 
 import sys
@@ -10,6 +31,7 @@ import os
 import time
 import gdal
 import math
+import warnings
 import pandas as pd
 import numpy as np
 from sklearn import metrics
@@ -69,7 +91,7 @@ def get_gdal_dtype(type_code):
     return code_dict[type_code]
 
 
-def main(raster_path, window_sizes, function_string, nodata, out_dir=None, mask_path=None, mask_val=0):
+def main(raster_path, window_sizes, function_string, nodata=None, out_dir=None, mask_path=None, mask_val=0):
        
     t0 = time.time()
     if not os.path.exists(raster_path):
@@ -82,6 +104,8 @@ def main(raster_path, window_sizes, function_string, nodata, out_dir=None, mask_
     else:
         raise ValueError('function_string not understood: %s. Valid options: %s' % (function_string, '\n\t'.join(FUNC_OPTIONS)))
     
+    mask_val = int(mask_val)
+    
     ds = gdal.Open(raster_path)
     ar = ds.ReadAsArray()
     n_bands = ds.RasterCount # Add fucntionality for multiple bands
@@ -89,7 +113,7 @@ def main(raster_path, window_sizes, function_string, nodata, out_dir=None, mask_
     prj = ds.GetProjection()
     driver = ds.GetDriver()
     dtype = get_gdal_dtype(ds.GetRasterBand(1).DataType)
-    if nodata:
+    if nodata is not None:
         nodata = int(nodata)
     elif not nodata:
         nodata = ds.GetRasterBand(1).GetNoDataValue()
@@ -112,7 +136,10 @@ def main(raster_path, window_sizes, function_string, nodata, out_dir=None, mask_
         else:
             out_path = raster_path.replace(file_ext, tag)
         if out_dir:
-            out_path = os.path.join(out_dir, os.path.basename(out_path))
+            if os.path.isdir(out_dir):
+                out_path = os.path.join(out_dir, os.path.basename(out_path))
+            else:
+                os.mkdir(out_dir)
 
         array_to_raster(ar_out, out_tx, prj, driver, out_path, dtype, nodata)
         
