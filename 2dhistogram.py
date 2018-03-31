@@ -3,15 +3,18 @@
 \nMake 2D histograms and calculate agreement stats for two rasters.
 
 Usage:
-  calc_aggregation_stats.py <ref_search_str>, <pred_search_str>, <r_nodata>, <p_nodata>, <agg_levels>, <out_txt>, [--pred_scale=<s>]
-  calc_aggregation_stats.py -h | --help
+    2dhistogram.py <ref_path> <pred_path> <r_nodata> <p_nodata> <out_txt> [--pred_scale=<float>] [--ax_limit=<int>]
+    2dhistogram.py -h | --help
 
+Required parameters:
+    
 Options:
-  -h --help     	  Show this screen.
-  --pred_scale=<s>  	  Scaling factor for the prediction map (float)
+    -h --help     	     Show this screen.
+    --pred_scale=<float>    Scaling factor for the prediction map (float)
+    --ax_limit=<int>        limit of x and y axes. Default is max of ref_path or pred_path
 '''
 
-import os
+import os 
 import sys
 import time
 import docopt
@@ -211,7 +214,7 @@ def hist2d(ar_r, ar_p, out_png, nbins=100, cmap='gray_r', title=None, xlabel=Non
     return hist
 
 
-def main(ref_path, pred_path, r_nodata, p_nodata, out_txt, pred_scale=0.1, ax_limit=1000):
+def main(ref_path, pred_path, r_nodata, p_nodata, out_txt, pred_scale=1, ax_limit=1000):
 
     sns.set_style('white')
     sns.set_context(context='paper', rc={'patch.linewidth': 0})
