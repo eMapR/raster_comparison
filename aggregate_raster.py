@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+Make raster(s) aggregated by the specified pixel window size(s)
+
 Usage:
     aggregate_raster.py <raster_path> <window_sizes> <function_string> [--nodata=<int>] [--out_dir=<str>] [--mask_path=<str>] [--mask_val=<int>]
 
@@ -19,10 +21,10 @@ Required parameters:
                     Valid options for `function_string' are 'nanmean', 'nansum', and 'mode'.
 
 Options:
-    nodata=<int>    integer nodata value of raster_path
-    out_dir=<str>   alternative output directory. Default is directory of raster_path
-    mask_path=<str> path of raster to use as mask before aggregating. Must have same geotransform and projection as raster_path
-    mask_val=<int>  int specifying which pixels to use as mask from mask_path
+    --nodata=<int>    integer nodata value of raster_path
+    --out_dir=<str>   alternative output directory. Default is directory of raster_path
+    --mask_path=<str> path of raster to use as mask before aggregating. Must have same geotransform and projection as raster_path
+    --mask_val=<int>  int specifying which pixels to use as mask from mask_path [default:0]
 
 """
 
@@ -31,7 +33,6 @@ import os
 import time
 import gdal
 import math
-import warnings
 import pandas as pd
 import numpy as np
 from sklearn import metrics
@@ -40,9 +41,11 @@ from lthacks import createMetadata
 from lthacks.stats_functions import get_function
 from lthacks.intersectMask import array_to_raster
 
+
 FUNC_OPTIONS = ['mode',
                 'nanmean',
                 'nansum']
+
 
 def aggregate_array(ar, window_size, function, nodata=None):
 
